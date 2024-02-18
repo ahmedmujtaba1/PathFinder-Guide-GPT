@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import pipeline, set_seed
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-generator = pipeline('text-generation', model='gpt2')
-set_seed(42) 
+tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
+model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-j-6B")
 
 app = FastAPI()
 
@@ -15,11 +15,10 @@ class TravelQuery(BaseModel):
 async def explore(travel_query: TravelQuery):
     prompt = f"Give me a list of must-visit places and recommended local dishes to try in {travel_query.location}. I am interested in {travel_query.interests}."
     
-    response = generator(prompt, max_length=200, num_return_sequences=1)
-    
-    generated_text = response[0]['generated_text']
+    input_ids = tokenizer.encode(prompt, return_tensors='pt')
+    en_text = model.generate(input_ids, max_length=200)
     
     return {
         "location": travel_query.location,
-        "generated_suggestions": generated_text
+        "generated_suggestions": en_text
     }
